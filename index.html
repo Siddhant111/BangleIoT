@@ -1,36 +1,125 @@
-<html>
- <head>
-   <style>
-     body { margin:0;  }
-     svg {
-       display:block; position:absolute;
-       top:0%; left:0%; width:100%; height:100%;
-     }
-   </style>    
- </head>
- <body>
-  <svg viewBox="0 0 24 24">
-    <path fill="#000000" d="M12,2A7,7 0 0,0 5,9C5,11.38 6.19,13.47 8,14.74V17A1,1 0 0,0 9,18H15A1,1 0 0,0 16,17V14.74C17.81,13.47 19,11.38 19,9A7,7 0 0,0 12,2M9,21A1,1 0 0,0 10,22H14A1,1 0 0,0 15,21V20H9V21Z" />
-  </svg>
+</html>
+<head>
+  <title>Bangle.js Heartrate streaming graph</title>
+</head>
+<body>
+  <script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
   <script src="https://www.puck-js.com/puck.js"></script>
-  <script type="text/javascript">
-    // Get the actual curve inside the SVG. You could make differemt
-    // parts of a more complex SVG do different things...
-    var path = document.getElementsByTagName('path')[0];
-    // Make sure your mouse cursor turns into a hand when over it, and gray it out
-    path.style="cursor:pointer;fill:#BBB";
-    // Now send commands to turn the LED on or off
-    var on = false;
-    path.addEventListener("click", function() {
-      on = !on;
-      if (on) {
-        path.style.fill="red";
-        Puck.write('LED1.set();\n');
-      } else {
-        path.style.fill="#444";
-        Puck.write('LED1.reset();\n');
+  <div id="chartContainer" style="height: 370px; width:100%;"></div>
+  <button id="btnConnect">Connect</button>
+</body>
+</html>
+<script>
+  // Code to upload to Bangle.js
+  var BANGLE_CODE = `
+  Bangle.setHRMPower(1)
+  Bangle.on('HRM',function(hrm) {
+    var d = [
+      "H",
+      hrm.bpm,
+      hrm.confidence
+      ];
+    Bluetooth.println(d.join(","));
+  })
+  `;
+
+  // When we click the connect button...
+  var connection;
+  document.getElementById("btnConnect").addEventListener("click", function() {
+    // disconnect if connected already
+    if (connection) {
+      connection.close();
+      connection = undefined;
+    }
+    // Connect
+    Puck.connect(function(c) {
+      if (!c) {
+        alert("Couldn't connect!");
+        return;
       }
+      connection = c;
+      // Handle the data we get back, and call 'onLine'
+      // whenever we get a line
+      var buf = "";
+      connection.on("data", function(d) {
+        buf += d;
+        var l = buf.split("\n");
+        buf = l.pop();
+        l.forEach(onLine);
+      });
+      // First, reset the Bangle
+      connection.write("reset();\n", function() {
+        // Wait for it to reset itself
+        setTimeout(function() {
+          // Now upload our code to it
+          connection.write("\x03\x10if(1){"+BANGLE_CODE+"}\n",
+            function() { console.log("Ready..."); });
+        }, 1500);
+      });
     });
-  </script>
-  </body>
- </html>
+  });
+
+  //Chart Setup
+  var dps = []; // dataPoints
+  var chart = new CanvasJS.Chart("chartContainer", {
+    title :{
+      text: "Bangle.js HeartRate Monitoring Over Time"
+    },
+    axisY:{
+      title: "Heart Rate",
+    },
+    axisX:{
+      title: "Time",
+      valueFormatString: "HH:mm:ss",
+    },
+    data: [{
+      type: "spline",
+      indexLabel: "{y}",
+      dataPoints: dps
+    }]
+  });
+
+  chart.render();
+  var dataLength = 30; // number of dataPoints visible at any point
+
+  var updateChart = function (hr) {
+    if (dps.length <= dataLength) {
+      labelVal = new Date().toISOString();
+      xVal = new Date;
+      yVal = hr;
+      dps.push({
+        x: xVal,
+        y: yVal
+      });
+    }
+
+    if (dps.length > dataLength) {
+      dps.shift();
+    }
+
+    chart.render();
+  };
+
+  // When we get a line of data, check it and if it's
+  // from the heart rate monitor, update it
+  function onLine(line) {
+    console.log("RECEIVED:"+line);
+    var d = line.split(",");
+    if (d.length==3 && d[0]=="H") {
+      // we have an HR monitor reading
+      var hr_data = {
+        hr : parseInt(d[1]),
+        conf : parseInt(d[2]),
+      };
+      
+    }
+    else if (parseInt(d[2])==0){
+        var hr_data = {
+        hr : 0
+    };
+  }
+  updateChart(hr_data.hr);
+}
+
+</script>
+</html>
