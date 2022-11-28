@@ -105,7 +105,7 @@
   function onLine(line) {
     console.log("RECEIVED:"+line);
     var d = line.split(",");
-    if (d.length==3 && d[0]=="H") {
+    if (d.length==3 && d[0]=="H" && d[2]!=parseInt(0)) {
       // we have an HR monitor reading
       var hr_data = {
         hr : parseInt(d[1]),
@@ -113,7 +113,7 @@
       };
       
     }
-    else if (parseInt(d[2])==0){
+    else{
         var hr_data = {
         hr : 0
     };
