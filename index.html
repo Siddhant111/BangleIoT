@@ -66,6 +66,13 @@
   document.getElementById("btndisconnect").addEventListener("click", function() {
       connection.close();
       connection = undefined;
+
+      Puck.connect(function(c) {
+      if (!c) {
+        alert("Successfully Disconnected!!");
+        return;
+      }
+    });
   });
 
   //Chart Setup
