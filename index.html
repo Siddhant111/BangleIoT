@@ -7,6 +7,7 @@
   <script src="https://www.puck-js.com/puck.js"></script>
   <div id="chartContainer" style="height: 370px; width:100%;"></div>
   <button id="btnConnect">Connect</button>
+  <button id="btndisconnect">Disconnect</button>
 </body>
 </html>
 <script>
@@ -59,6 +60,14 @@
     });
   });
 
+
+  //Disconnect
+  var connection;
+  document.getElementById("btndisconnect").addEventListener("click", function() {
+      connection.close();
+      connection = undefined;
+  });
+
   //Chart Setup
   var dps = []; // dataPoints
   var chart = new CanvasJS.Chart("chartContainer", {
@@ -105,21 +114,15 @@
   function onLine(line) {
     console.log("RECEIVED:"+line);
     var d = line.split(",");
-    if (d.length==3 && d[0]=="H" && d[2]!=parseInt(0)) {
+    if (d.length==3 && d[0]=="H") {
       // we have an HR monitor reading
       var hr_data = {
         hr : parseInt(d[1]),
         conf : parseInt(d[2]),
       };
-      
+      updateChart(hr_data.hr);
     }
-    else{
-        var hr_data = {
-        hr : 0
-    };
   }
-  updateChart(hr_data.hr);
-}
 
 </script>
 </html>
