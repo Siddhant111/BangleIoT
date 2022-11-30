@@ -7,7 +7,6 @@
   <script src="https://www.puck-js.com/puck.js"></script>
   <div id="chartContainer" style="height: 370px; width:100%;"></div>
   <button id="btnConnect">Connect</button>
-  <button id="btndisconnect">Disconnect</button>
 </body>
 </html>
 <script>
@@ -58,13 +57,6 @@
         }, 1500);
       });
     });
-  });
-
-
-  //Disconnect
-  document.getElementById("btndisconnect").addEventListener("click", function() {
-      connection.close();
-    alert("Successfully Disconnected!!");
   });
 
   //Chart Setup
